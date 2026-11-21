@@ -1,8 +1,14 @@
-export default function NotesPage() {
+import { getNotes } from "../lib/notes";
+import NotesList from "@/app/components/NotesList";
+
+export default async function NotesPage() {
+  const notes = await getNotes();
+
   return (
     <main>
-      <h1 className="text-3xl font-bold">All Notes</h1>
-      <p className="mt-2">Your notes will appear here.</p>
+      <h1 className="mb-6 text-3xl font-bold">All Notes</h1>
+
+      <NotesList notes={notes} />
     </main>
   );
 }
