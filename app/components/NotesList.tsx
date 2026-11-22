@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Note } from "../lib/notes";
-import { Link } from "lucide-react";
+import Link from "next/link";
 
 export default function NotesList({ notes }: { notes: Note[] }) {
   const [search, setSearch] = useState("");
@@ -25,6 +25,7 @@ export default function NotesList({ notes }: { notes: Note[] }) {
         {filteredNotes.map((note) => (
           <Link
             key={note.id}
+            href={`/notes/${note.id}`}
             className="block rounded-xl border border-zinc-800 p-5 transition hover:border-zinc-600 hover:bg-zinc-900"
           >
             <h2 className="text-xl font-semibold">{note.title}</h2>
