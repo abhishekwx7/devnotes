@@ -25,3 +25,9 @@ const notes: Note[] = [
 export async function getNotes(): Promise<Note[]> {
     return notes;
 }
+
+export async function getNoteById(
+    id: string
+): Promise<Note | undefined> {
+    return notes.find((note) => note.id === id);
+}
