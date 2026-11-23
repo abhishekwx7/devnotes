@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { notes } from "@/lib/notes";
+
+import {
+    noteService,
+    NoteValidationError,
+} from "@/server/services/note.service";
 
 type RouteContext = {
     params: Promise<{ id: string }>;
@@ -10,7 +14,6 @@ export async function GET(
     { params }: RouteContext
 ) {
     const { id } = await params;
-
     const noteId = Number(id);
 
     if (!Number.isSafeInteger(noteId) || noteId <= 0) {
@@ -20,7 +23,7 @@ export async function GET(
         );
     }
 
-    const note = notes.find((note) => note.id === noteId);
+    const note = noteService.getNoteById(noteId);
 
     if (!note) {
         return NextResponse.json(
@@ -49,15 +52,6 @@ export async function PATCH(
         );
     }
 
-    const note = notes.find((note) => note.id === noteId);
-
-    if (!note) {
-        return NextResponse.json(
-            { error: "Note not found" },
-            { status: 404 }
-        );
-    }
-
     let body: unknown;
 
     try {
@@ -69,28 +63,29 @@ export async function PATCH(
         );
     }
 
-    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    if (
+        typeof body !== "object" ||
+        body === null ||
+        Array.isArray(body)
+    ) {
         return NextResponse.json(
             { error: "Expected a JSON object" },
             { status: 400 }
         );
     }
 
-    const updates = body as Record<string, unknown>;
-    const { title, content } = updates;
+    const { title, content } = body as Record<string, unknown>;
 
     if (title === undefined && content === undefined) {
         return NextResponse.json(
-            { error: "Provide a title or content to update" },
+            { error: "Provide a title or content" },
             { status: 400 }
         );
     }
 
     if (
-        (title !== undefined &&
-            (typeof title !== "string" || !title.trim())) ||
-        (content !== undefined &&
-            (typeof content !== "string" || !content.trim()))
+        (title !== undefined && typeof title !== "string") ||
+        (content !== undefined && typeof content !== "string")
     ) {
         return NextResponse.json(
             { error: "Invalid title or content" },
@@ -98,21 +93,44 @@ export async function PATCH(
         );
     }
 
-    if (typeof title === "string") {
-        note.title = title.trim();
-    }
+    try {
+        const note = noteService.updateNote(noteId, {
+            title,
+            content,
+        });
 
-    if (typeof content === "string") {
-        note.content = content.trim();
-    }
+        if (!note) {
+            return NextResponse.json(
+                { error: "Note not found" },
+                { status: 404 }
+            );
+        }
 
-    return NextResponse.json({
-        success: true,
-        data: note,
-    });
+        return NextResponse.json({
+            success: true,
+            data: note,
+        });
+    } catch (error) {
+        if (error instanceof NoteValidationError) {
+            return NextResponse.json(
+                { error: error.message },
+                { status: 400 }
+            );
+        }
+
+        console.error("Failed to update note:", error);
+
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
+    }
 }
 
-export async function DELETE(request: Request, { params }: RouteContext) {
+export async function DELETE(
+    request: Request,
+    { params }: RouteContext
+) {
     const { id } = await params;
     const noteId = Number(id);
 
@@ -123,16 +141,14 @@ export async function DELETE(request: Request, { params }: RouteContext) {
         );
     }
 
-    const index = notes.findIndex((note) => note.id === noteId);
+    const deleted = noteService.deleteNote(noteId);
 
-    if (index === -1) {
+    if (!deleted) {
         return NextResponse.json(
             { error: "Note not found" },
-            { status: 400 }
+            { status: 404 }
         );
     }
-
-    notes.splice(index, 1);
 
     return new Response(null, { status: 204 });
 }
