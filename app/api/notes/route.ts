@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { notes, createNote } from "@/lib/notes";
+import { createNote } from "@/lib/notes";
+import { noteService } from "@/server/services/note.service";
 
 export async function GET() {
+    const notes = noteService.getAllNotes();
+
     return NextResponse.json({
         success: true,
         data: notes,
