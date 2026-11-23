@@ -1,54 +1,50 @@
 import { NextResponse } from "next/server";
-
-const notes = [
-    {
-        id: 1,
-        title: "Learn Next.js",
-        content: "Understanding App Router",
-    },
-    {
-        id: 2,
-        title: "Learn APIs",
-        content: "Understanding Route Handlers",
-    },
-];
+import { notes, createNote } from "@/lib/notes";
 
 export async function GET() {
-    const notes = [
-        { id: 1, title: 'Learn Next.js' },
-        { id: 2, title: 'Learn Route Handlers' },
-    ];
-
     return NextResponse.json({
         success: true,
         data: notes,
-    })
+    });
 }
 
 export async function POST(request: Request) {
-    const body = await request.json();
+    let body: unknown;
 
-    const { title, content } = body;
-
-    if (typeof title !== "string" || !title.trim() || typeof content !== "string" || !content.trim()) {
+    try {
+        body = await request.json();
+    } catch {
         return NextResponse.json(
-            { error: "Title and content are required!" },
+            { error: "Invalid JSON body" },
             { status: 400 }
         );
     }
 
-    const newNote = {
-        id: notes.length + 1,
-        title: title.trim(),
-        content: content.trim(),
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        return NextResponse.json(
+            { error: "Expected a JSON object" },
+            { status: 400 }
+        );
     }
 
-    notes.push(newNote);
+    const { title, content } = body as Record<string, unknown>;
 
-    return NextResponse.json({
-        sucess: true,
-        data: newNote,
-    }, {
-        status: 201
-    });
+    if (
+        typeof title !== "string" ||
+        !title.trim() ||
+        typeof content !== "string" ||
+        !content.trim()
+    ) {
+        return NextResponse.json(
+            { error: "Title and content are required" },
+            { status: 400 }
+        );
+    }
+
+    const note = createNote(title.trim(), content.trim());
+
+    return NextResponse.json(
+        { success: true, data: note },
+        { status: 201 }
+    );
 }
