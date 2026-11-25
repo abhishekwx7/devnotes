@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-
 import {
     noteService,
-    NoteLimitError,
     NoteValidationError,
+    NoteLimitError,
 } from "@/server/services/note.service";
+import {
+    createNoteSchema,
+} from "@/server/validations/note.schema";
 
 export async function GET() {
     const notes = noteService.getAllNotes();
@@ -27,37 +29,26 @@ export async function POST(request: Request) {
         );
     }
 
-    if (
-        typeof body !== "object" ||
-        body === null ||
-        Array.isArray(body)
-    ) {
-        return NextResponse.json(
-            { error: "Expected a JSON object" },
-            { status: 400 }
-        );
-    }
+    const result = createNoteSchema.safeParse(body);
 
-    const { title, content } = body as Record<string, unknown>;
-
-    if (
-        typeof title !== "string" ||
-        typeof content !== "string"
-    ) {
+    if (!result.success) {
         return NextResponse.json(
-            { error: "Title and content must be strings" },
+            {
+                success: false,
+                errors: result.error.flatten().fieldErrors,
+            },
             { status: 400 }
         );
     }
 
     try {
-        const note = noteService.createNote(title, content);
+        const note = noteService.createNote(
+            result.data.title,
+            result.data.content
+        );
 
         return NextResponse.json(
-            {
-                success: true,
-                data: note,
-            },
+            { success: true, data: note },
             { status: 201 }
         );
     } catch (error) {
@@ -75,7 +66,7 @@ export async function POST(request: Request) {
             );
         }
 
-        console.error("Failed to create note:", error);
+        console.error(error);
 
         return NextResponse.json(
             { error: "Internal server error" },
