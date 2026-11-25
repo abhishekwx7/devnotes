@@ -1,29 +1,33 @@
 import { NextResponse } from "next/server";
-
 import {
     noteService,
     NoteValidationError,
 } from "@/server/services/note.service";
+import {
+    noteIdSchema,
+    updateNoteSchema,
+} from "@/server/validations/note.schema";
 
 type RouteContext = {
     params: Promise<{ id: string }>;
 };
 
+// GET /api/notes/:id
 export async function GET(
     request: Request,
     { params }: RouteContext
 ) {
     const { id } = await params;
-    const noteId = Number(id);
+    const parsedId = noteIdSchema.safeParse(id);
 
-    if (!Number.isSafeInteger(noteId) || noteId <= 0) {
+    if (!parsedId.success) {
         return NextResponse.json(
             { error: "Invalid note ID" },
             { status: 400 }
         );
     }
 
-    const note = noteService.getNoteById(noteId);
+    const note = noteService.getNoteById(parsedId.data);
 
     if (!note) {
         return NextResponse.json(
@@ -38,14 +42,15 @@ export async function GET(
     });
 }
 
+// PATCH /api/notes/:id
 export async function PATCH(
     request: Request,
     { params }: RouteContext
 ) {
     const { id } = await params;
-    const noteId = Number(id);
+    const parsedId = noteIdSchema.safeParse(id);
 
-    if (!Number.isSafeInteger(noteId) || noteId <= 0) {
+    if (!parsedId.success) {
         return NextResponse.json(
             { error: "Invalid note ID" },
             { status: 400 }
@@ -63,41 +68,23 @@ export async function PATCH(
         );
     }
 
-    if (
-        typeof body !== "object" ||
-        body === null ||
-        Array.isArray(body)
-    ) {
-        return NextResponse.json(
-            { error: "Expected a JSON object" },
-            { status: 400 }
-        );
-    }
+    const result = updateNoteSchema.safeParse(body);
 
-    const { title, content } = body as Record<string, unknown>;
-
-    if (title === undefined && content === undefined) {
+    if (!result.success) {
         return NextResponse.json(
-            { error: "Provide a title or content" },
-            { status: 400 }
-        );
-    }
-
-    if (
-        (title !== undefined && typeof title !== "string") ||
-        (content !== undefined && typeof content !== "string")
-    ) {
-        return NextResponse.json(
-            { error: "Invalid title or content" },
+            {
+                success: false,
+                errors: result.error.flatten(),
+            },
             { status: 400 }
         );
     }
 
     try {
-        const note = noteService.updateNote(noteId, {
-            title,
-            content,
-        });
+        const note = noteService.updateNote(
+            parsedId.data,
+            result.data
+        );
 
         if (!note) {
             return NextResponse.json(
@@ -118,7 +105,7 @@ export async function PATCH(
             );
         }
 
-        console.error("Failed to update note:", error);
+        console.error(error);
 
         return NextResponse.json(
             { error: "Internal server error" },
@@ -127,21 +114,22 @@ export async function PATCH(
     }
 }
 
+// DELETE /api/notes/:id
 export async function DELETE(
     request: Request,
     { params }: RouteContext
 ) {
     const { id } = await params;
-    const noteId = Number(id);
+    const parsedId = noteIdSchema.safeParse(id);
 
-    if (!Number.isSafeInteger(noteId) || noteId <= 0) {
+    if (!parsedId.success) {
         return NextResponse.json(
             { error: "Invalid note ID" },
             { status: 400 }
         );
     }
 
-    const deleted = noteService.deleteNote(noteId);
+    const deleted = noteService.deleteNote(parsedId.data);
 
     if (!deleted) {
         return NextResponse.json(

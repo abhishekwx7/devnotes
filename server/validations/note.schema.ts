@@ -12,3 +12,23 @@ export const createNoteSchema = z.object({
         .trim()
         .min(1, "Content is required"),
 });
+
+export const updateNoteSchema = createNoteSchema
+    .partial()
+    .refine(
+        (data) =>
+            data.title !== undefined ||
+            data.content !== undefined,
+        {
+            message: "Provide at least one field to update",
+        }
+    );
+
+export const noteIdSchema = z
+    .string()
+    .regex(/^[1-9]\d*$/, "Invalid note ID")
+    .transform(Number)
+    .refine(Number.isSafeInteger, "Invalid note ID");
+
+export type UpdateNoteInput =
+    z.infer<typeof updateNoteSchema>;
