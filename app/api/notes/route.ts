@@ -1,76 +1,40 @@
 import { NextResponse } from "next/server";
-import {
-    noteService,
-    NoteValidationError,
-    NoteLimitError,
-} from "@/server/services/note.service";
-import {
-    createNoteSchema,
-} from "@/server/validations/note.schema";
+
+import { noteService } from "@/server/services/note.service";
+import { handleApiError } from "@/server/utils/handle-api-error";
+import { parseJsonBody } from "@/server/utils/parse-json-body";
+import { validateRequest } from "@/server/utils/validate-request";
+import { createNoteSchema } from "@/server/validations/note.schema";
 
 export async function GET() {
-    const notes = noteService.getAllNotes();
+    try {
+        const notes = noteService.getAllNotes();
 
-    return NextResponse.json({
-        success: true,
-        data: notes,
-    });
+        return NextResponse.json({
+            success: true,
+            data: notes,
+        });
+    } catch (error) {
+        return handleApiError(error);
+    }
 }
 
 export async function POST(request: Request) {
-    let body: unknown;
-
     try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json(
-            { error: "Invalid JSON body" },
-            { status: 400 }
-        );
-    }
+        const body = await parseJsonBody(request);
 
-    const result = createNoteSchema.safeParse(body);
+        const data = validateRequest(createNoteSchema, body);
 
-    if (!result.success) {
+        const note = noteService.createNote(data.title, data.content);
+
         return NextResponse.json(
             {
-                success: false,
-                errors: result.error.flatten().fieldErrors,
+                success: true,
+                data: note,
             },
-            { status: 400 }
-        );
-    }
-
-    try {
-        const note = noteService.createNote(
-            result.data.title,
-            result.data.content
-        );
-
-        return NextResponse.json(
-            { success: true, data: note },
             { status: 201 }
         );
     } catch (error) {
-        if (error instanceof NoteValidationError) {
-            return NextResponse.json(
-                { error: error.message },
-                { status: 400 }
-            );
-        }
-
-        if (error instanceof NoteLimitError) {
-            return NextResponse.json(
-                { error: error.message },
-                { status: 409 }
-            );
-        }
-
-        console.error(error);
-
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        );
+        return handleApiError(error);
     }
 }

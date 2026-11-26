@@ -1,18 +1,5 @@
+import { AppError } from "@/server/errors/app-error";
 import { noteRepository } from "@/server/repositories/note.repository";
-
-export class NoteValidationError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = "NoteValidationError"
-    }
-}
-
-export class NoteLimitError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = "NoteLimitError"
-    }
-}
 
 export const noteService = {
     getAllNotes() {
@@ -20,7 +7,17 @@ export const noteService = {
     },
 
     getNoteById(id: number) {
-        return noteRepository.findById(id);
+        const note = noteRepository.findById(id);
+
+        if (!note) {
+            throw new AppError(
+                404,
+                "Note not found",
+                "NOTE_NOT_FOUND"
+            );
+        }
+
+        return note;
     },
 
     createNote(title: string, content: string) {
@@ -28,23 +25,39 @@ export const noteService = {
         const trimmedContent = content.trim();
 
         if (!trimmedTitle || !trimmedContent) {
-            throw new NoteValidationError("Title and content are required!");
+            throw new AppError(
+                400,
+                "Title and content are required",
+                "VALIDATION_ERROR"
+            );
         }
 
         if (trimmedTitle.length > 100) {
-            throw new NoteValidationError("Title cannot exceed 100 characters");
+            throw new AppError(
+                400,
+                "Title cannot exceed 100 characters",
+                "VALIDATION_ERROR"
+            );
         }
 
-        const notes = noteRepository.findAll();
-
-        if (notes.length >= 100) {
-            throw new NoteLimitError("Maximum note limit reached");
+        if (noteRepository.findAll().length >= 100) {
+            throw new AppError(
+                409,
+                "Maximum note limit reached",
+                "NOTE_LIMIT_REACHED"
+            );
         }
 
-        return noteRepository.create(trimmedTitle, trimmedContent);
+        return noteRepository.create(
+            trimmedTitle,
+            trimmedContent
+        );
     },
 
-    updateNote(id: number, data: { title?: string; content?: string }) {
+    updateNote(
+        id: number,
+        data: { title?: string; content?: string }
+    ) {
         const updates: {
             title?: string;
             content?: string;
@@ -54,7 +67,11 @@ export const noteService = {
             const title = data.title.trim();
 
             if (!title || title.length > 100) {
-                throw new NoteValidationError("Title must contain 1 to 100 characters.");
+                throw new AppError(
+                    400,
+                    "Title must contain 1 to 100 characters",
+                    "VALIDATION_ERROR"
+                );
             }
 
             updates.title = title;
@@ -64,16 +81,26 @@ export const noteService = {
             const content = data.content.trim();
 
             if (!content) {
-                throw new NoteValidationError("Content cannot be empty");
+                throw new AppError(
+                    400,
+                    "Content cannot be empty",
+                    "VALIDATION_ERROR"
+                );
             }
 
             updates.content = content;
         }
 
+        // Check existence, then update.
+        // These are separate operations in our temporary repository.
+        this.getNoteById(id);
+
         return noteRepository.update(id, updates);
     },
 
     deleteNote(id: number) {
+        this.getNoteById(id);
+
         return noteRepository.delete(id);
-    }
-}
+    },
+};
