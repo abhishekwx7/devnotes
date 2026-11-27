@@ -1,32 +1,32 @@
-import { getNoteById } from "@/app/lib/notes";
+import { prisma } from "../../../src/lib/prisma";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 
-interface PageProps {
+interface NotePageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function NoteDetailsPage({ params }: PageProps) {
+export default async function NotePage({ params }: NotePageProps) {
   const { id } = await params;
 
-  const note = await getNoteById(id);
+  const note = await prisma.note.findUnique({
+    where: {
+      id,
+    },
+  });
 
   if (!note) {
     notFound();
   }
 
   return (
-    <main className="space-y-6">
-      <Link
-        href="/notes"
-        className="text-sm text-zinc-400 hover:text-white mb-5"
-      >
-        ⬅️ Back to notes
-      </Link>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold">{note.title}</h1>
 
-      <h1 className="text-4xl font-bold mt-4 text-red-500">{note.title}</h1>
+      <p className="text-sm text-gray-500 mt-2">
+        Created: {note.createdAt.toLocaleDateString()}
+      </p>
 
-      <p className="leading-relaxed text-zinc-400">{note.content}</p>
-    </main>
+      <div className="mt-6 whitespace-pre-wrap">{note.content}</div>
+    </div>
   );
 }
