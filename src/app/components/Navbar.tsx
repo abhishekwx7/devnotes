@@ -9,7 +9,7 @@ export default function Navbar() {
 
       <Link href="/notes">Notes</Link>
 
-      <Link href="/notes/create">Create Note</Link>
+      <Link href="/notes/new/">Create Note</Link>
 
       <Link href="/about">About</Link>
     </nav>

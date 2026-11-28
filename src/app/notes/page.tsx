@@ -10,7 +10,17 @@ export default async function NotesPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">My Notes</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">My Notes</h1>
+
+        <Link
+          href="/notes/new"
+          className="rounded-lg bg-blue-600 px-4 py-2
+               text-white hover:bg-blue-700"
+        >
+          + New Note
+        </Link>
+      </div>
       {notes.length === 0 && <p>No notes found.</p>}
 
       <div className="grid gap-4 md:grid-cols-2">
