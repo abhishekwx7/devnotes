@@ -1,4 +1,5 @@
-import { prisma } from "../../../src/lib/prisma";
+import Link from "next/link";
+import { prisma } from "../../../lib/prisma";
 import { notFound } from "next/navigation";
 
 interface NotePageProps {
@@ -20,6 +21,13 @@ export default async function NotePage({ params }: NotePageProps) {
 
   return (
     <div className="p-6">
+      <Link
+        href="/notes"
+        className="inline-block text-sm text-gray-500 hover:text-gray-900 mb-4"
+      >
+        &larr; Back to Notes
+      </Link>
+
       <h1 className="text-3xl font-bold">{note.title}</h1>
 
       <p className="text-sm text-gray-500 mt-2">
